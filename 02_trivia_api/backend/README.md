@@ -66,28 +66,273 @@ One note before you delve into your tasks: for each endpoint you are expected to
 8. Create a POST endpoint to get questions to play the quiz. This endpoint should take category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions. 
 9. Create error handlers for all expected errors including 400, 404, 422 and 500. 
 
-REVIEW_COMMENT
+
+## Errors
+
+### 404 RESOURCE NOT FOUND
+
+```json
+{
+    "message": "Resource not found",
+    "success": false
+}
 ```
-This README is missing documentation of your endpoints. Below is an example for your endpoint to get all categories. Please use it as a reference for creating your documentation and resubmit your code. 
 
-Endpoints
-GET '/categories'
-GET ...
-POST ...
-DELETE ...
+### 500 INTERNAL SERVER ERROR
 
-GET '/categories'
-- Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
+```json
+{
+    "message": "Internal server error",
+    "success": false
+}
+```
+
+### 400 BAD REQUEST
+
+```json
+{
+    "message": "Bad request",
+    "success": false
+}
+```
+
+### 405 METHOD NOT ALLOWED
+
+```json
+{
+    "message": "Method not allowed",
+    "success": false
+}
+```
+
+### 422 UNPROCESSABLE
+
+```json
+{
+    "message": "Unprocessable",
+    "success": false
+}
+```
+
+## Endpoints 
+
+#### Retrive categories 
+`/categories` **`GET`**
+- Fetches a dictionary of categories with the keys as the IDs and the value is the corresponding string of the category
 - Request Arguments: None
-- Returns: An object with a single key, categories, that contains a object of id: category_string key:value pairs. 
-{'1' : "Science",
-'2' : "Art",
-'3' : "Geography",
-'4' : "History",
-'5' : "Entertainment",
-'6' : "Sports"}
+- Returns: An object with a single key, categories, that contains a object of id: category_string key:value pairs.
+```JSON
+{
+    "success": true, 
+    "total_categories": 6,
+    "categories": {
+        "1": "Science", 
+        "2": "Art", 
+        "3": "Geography", 
+        "4": "History", 
+        "5": "Entertainment", 
+        "6": "Sports"
+    }
+    
+}
+```
+#### Retrieve Questions
+`/questions` **`GET`**
+- Fetches paginated questions in the groups of 10 questions per page.
+- Request Arguments: page `/questions?page=1` - In case `/questions`, default is `1`
+- Returns: An object with questions for the page specified in the request along with categories and total number of questions
+
+```json
+{
+  "categories": {
+    "1": "Science",
+    "2": "Art",
+    "3": "Geography",
+    "4": "History",
+    "5": "Entertainment",
+    "6": "Sports"
+  },
+  "current_category": [],
+  "questions": [
+    {
+      "answer": "Tom Cruise",
+      "category": 5,
+      "difficulty": 4,
+      "id": 4,
+      "question": "What actor did author Anne Rice first denounce, then praise in the role of her beloved Lestat?"
+    },
+    {
+      "answer": "Maya Angelou",
+      "category": 4,
+      "difficulty": 2,
+      "id": 5,
+      "question": "Whose autobiography is entitled 'I Know Why the Caged Bird Sings'?"
+    },
+    ...,
+  ],
+  "success": true,
+  "total_questions": 20
+}
 
 ```
+#### Delete Question
+`/questions/<int:question_id>` **`DELETE`**
+
+- Deletes the question of the given ID if it exists. Returns the id of the deleted question, success value, total questions. 
+- Request Arguments: None
+- Returns: An object with deleted question's id and total number questions
+- `curl -X DELETE loaclhost:5000/questions/<int:question_id>`
+
+```json
+{
+  "question": 4, 
+  "success": true, 
+  "total_questions": 19
+}
+```
+
+#### Add new question
+`/questions` **`POST`**
+- Creates a new Question
+- using question,answer,category and difficulty.
+- Request Arguments: A JSON object containing question text, answer text, difficulty number and category id
+    ```JSON
+    {
+        "question":"What is the capital of Pakistan?",
+        "answer":"Islamabad",
+        "difficulty":"3",
+        "category":"3"
+    }
+    ```
+- return true if created.
+    ```json
+    {
+      "created": 27, 
+      "questions": [
+        {
+          "answer": "Maya Angelou", 
+          "category": 4, 
+          "difficulty": 2, 
+          "id": 5, 
+          "question": "Whose autobiography is entitled 'I Know Why the Caged Bird Sings'?"
+        }, 
+        ...,
+        {
+          "answer": "Escher", 
+          "category": 2, 
+          "difficulty": 1, 
+          "id": 16, 
+          "question": "Which Dutch graphic artist\u2013initials M C was a creator of optical illusions?"
+        }
+      ], 
+      "success": true, 
+      "total_questions": 20
+    }
+    ```
+
+
+
+#### Search for questions
+`/questions/search/` **`POST`**
+- Search for the question.
+- Request Body: search data.
+    ```json
+    {
+        "searchTerm":"title"
+    }
+    ```
+- Returns: An object with a list of questions macthing the search term along with categories they belong to and total number of questions.
+    ```json
+    {
+      "current_category": [
+        4, 
+        5
+      ], 
+      "questions": [
+        {
+          "answer": "Maya Angelou", 
+          "category": 4, 
+          "difficulty": 2, 
+          "id": 5, 
+          "question": "Whose autobiography is entitled 'I Know Why the Caged Bird Sings'?"
+        }, 
+        {
+          "answer": "Edward Scissorhands", 
+          "category": 5, 
+          "difficulty": 3, 
+          "id": 6, 
+          "question": "What was the title of the 1990 fantasy directed by Tim Burton about a young man with multi-bladed appendages?"
+        }
+      ], 
+      "total_questions": 19
+    }
+    ```
+
+#### Retrive categorized questions
+`/categories/<int:category_id>/questions` **`GET`**
+- Get questions by category.
+- Request : category id and page number.
+- Returns: all questions,number of total questions,current category and other categories.
+    
+```json
+{
+  "current_category": {
+    "id": 1, 
+    "type": "Science"
+  }, 
+  "questions": [
+    {
+      "answer": "Alexander Fleming", 
+      "category": 1, 
+      "difficulty": 3, 
+      "id": 21, 
+      "question": "Who discovered penicillin?"
+    }, 
+    {
+      "answer": "Blood", 
+      "category": 1, 
+      "difficulty": 4, 
+      "id": 22, 
+      "question": "Hematology is a branch of medicine involving the study of what?"
+    }
+  ], 
+  "success": true, 
+  "total_questions": 20
+}
+```
+
+#### Playing quiz
+`/quizzs`   **`POST`**
+
+- get questions to play the quiz.
+- Takes category and previous question parameters
+    ```json
+    {
+        "previous_questions":[21],
+        "quiz_category":{
+            "type":"Science",
+            "id":"1"
+        }
+    }
+    ```
+- Returns:random questions example 
+    
+    ```json
+    {
+      "question": {
+        "answer": "Blood", 
+        "category": 1, 
+        "difficulty": 4, 
+        "id": 22, 
+        "question": "Hematology is a branch of medicine involving the study of what?"
+      }, 
+      "success": true
+    }
+    
+    ```
+
+
+
 
 
 ## Testing

@@ -1,2 +1,4 @@
-
-02_trivia_api/frontend/node_modules/
+.vscode
+__pycache__
+venv
+node_modules

@@ -9,6 +9,7 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
 def paginate(request, selection):
     page = request.args.get('page', 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
@@ -18,6 +19,7 @@ def paginate(request, selection):
     current_questions = questions[start:end]
 
     return current_questions
+
 
 def create_app(test_config=None):
   # create and configure the app
@@ -36,8 +38,12 @@ def create_app(test_config=None):
         Use the after_request decorator to set Access-Control-Allow-Methods
         Use the after_request decorator to set Access-Control-Allow-Credentials
         '''
-        response.headers.add('Access-Control-Allow-Headers','Content-Type, Authorization')
-        response.headers.add('Access-Control-Allow-Methods','GET, POST, PATCH, DELETE, OPTIONS')
+        response.headers.add(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization')
+        response.headers.add(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PATCH, DELETE, OPTIONS')
         response.headers.add('Access-Control-Allow-Credentials', 'true')
 
         return response
@@ -52,7 +58,8 @@ def create_app(test_config=None):
             if (len(categories) == 0):
                 abort(404)
 
-            parsedCategories = { category.id: category.type for category in categories }
+            parsedCategories = {
+                category.id: category.type for category in categories}
 
             return jsonify({
                 'success': True,
@@ -72,11 +79,11 @@ def create_app(test_config=None):
         selection = Question.query.order_by(Question.id).all()
         currentPaginatedQuestions = paginate(request, selection)
 
-
         if (len(currentPaginatedQuestions) == 0):
             abort(404)
 
-        parsedCategories = { category.id: category.type for category in Category.query.all() }
+        parsedCategories = {
+            category.id: category.type for category in Category.query.all()}
 
         return jsonify({
             'success': True,
@@ -91,7 +98,8 @@ def create_app(test_config=None):
         '''
         An endpoint to DELETE question using a question ID.
         '''
-        questionToDelete = Question.query.filter( Question.id == question_id ).one_or_none()
+        questionToDelete = Question.query.filter(
+            Question.id == question_id).one_or_none()
         if (questionToDelete is None):
             abort(404)
 
@@ -126,7 +134,8 @@ def create_app(test_config=None):
 
         try:
             if searchTerm:  # handles search
-                selection = Question.query.order_by(Question.id).filter( Question.question.ilike('%{}%'.format(search_term)) )
+                selection = Question.query.order_by(Question.id).filter(
+                    Question.question.ilike('%{}%'.format(search_term)))
                 currentQuestions = paginate(request, selection)
 
                 if (len(currentQuestions) == 0):
@@ -185,11 +194,13 @@ def create_app(test_config=None):
         '''
         A GET endpoint to get questions based on category.
         '''
-        currentCategory = Category.query.filter( Category.id == category_id ).one_or_none()
+        currentCategory = Category.query.filter(
+            Category.id == category_id).one_or_none()
         if (currentCategory is None):
             abort(404)
 
-        selection = Question.query.filter( Question.category == category_id ).all()
+        selection = Question.query.filter(
+            Question.category == category_id).all()
         currentQuestions = paginate(request, selection)
         if (len(currentQuestions) == 0):
             abort(404)
@@ -207,45 +218,48 @@ def create_app(test_config=None):
         A POST endpoint to get questions to play the quiz. takes category and previous question parameters
         returns a random questions within the given category, if provided, and that is not one of the previous questions.
         '''
-        body = request.get_json(force=True)
-        previousQuestions = body.get('previous_questions', None)
-        category = body.get('quiz_category', None)
-
+        body = request.get_json()
+        id = body['quiz_category']['id']
+        previousQuestions = body['previous_questions']
+#         category = body.get('quiz_category', None)
+#        i changes the entire previous implementations entirely as it was
+#        going to be a mess to fix because of all the nested if statements
         try:
-            if category is not None:
-                categoryFound = Category.query\
-                    .filter(Category.id == category['id']).one_or_none()
-            if categoryFound is not None:
-                if previousQuestions is not None:
-                    questions = Question.query\
-                        .filter(Question.category == category['id'])\
-                        .filter(Question.id.notin_(previousQuestions)).all()
-                else:
-                    questions = Question.query\
-                        .filter(Question.category == category['id']).all()
+            if id == 0:  # id is 0 in case of all is chosen
+                questions = Question.query.all()
+                randomQuestion = random.choice(questions)
 
-                formatted_questions = [
-                    question.format() for question in questions
-                    ]
+                quizData = {
+                    'id': randomQuestion.id,
+                    'question': randomQuestion.question,
+                    'answer': randomQuestion.answer,
+                    'category': randomQuestion.category,
+                    'difficulty': randomQuestion.difficulty
+                }
 
-                if len(formatted_questions) != 0:
-                    return jsonify({
-                            'success': True,
-                            'question': formatted_questions[random.randint(
-                                0,
-                                len(formatted_questions) - 1
-                                )
-                            ]
-                    })
-                else:
-                    return jsonify({
-                        'success': True,
-                        'question': None
-                    })
-            abort(404)
-        except Exception as ex:
-            print(4, ex)
-            abort(404)
+                return jsonify({
+                    "question": quizData,
+                    "previousQuestions": []
+                })
+
+            else:
+                questions = Question.query.filter(
+                    Question.category == id,
+                    ~Question.id.in_(previousQuestions)).all()
+                randomQuestion = random.choice(questions)
+
+                quizData = {
+                    'id': randomQuestion.id,
+                    'question': randomQuestion.question,
+                    'answer': randomQuestion.answer,
+                    'category': randomQuestion.category,
+                    'difficulty': randomQuestion.difficulty}
+
+                return jsonify({
+                    "question": quizData,
+                    "previousQuestions": []})
+        except BaseException:
+            abort(422)
 
     @app.errorhandler(422)
     def unprocessable_error_handler(error):
