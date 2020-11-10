@@ -226,7 +226,12 @@ def create_app(test_config=None):
 #        going to be a mess to fix because of all the nested if statements
         try:
             if id == 0:  # id is 0 in case of all is chosen
-                questions = Question.query.all()
+                questions = Question.query.filter(~Question.id.in_(previousQuestions)).all()
+
+                if len(questions) == 0 :
+                    return jsonify({
+                       "previousQuestions": []})
+
                 randomQuestion = random.choice(questions)
 
                 quizData = {
@@ -246,6 +251,11 @@ def create_app(test_config=None):
                 questions = Question.query.filter(
                     Question.category == id,
                     ~Question.id.in_(previousQuestions)).all()
+
+                if len(questions) == 0 :
+                    return jsonify({
+                       "previousQuestions": []})
+
                 randomQuestion = random.choice(questions)
 
                 quizData = {
@@ -258,7 +268,8 @@ def create_app(test_config=None):
                 return jsonify({
                     "question": quizData,
                     "previousQuestions": []})
-        except BaseException:
+        except BaseException  as ex:
+            print(4,ex)
             abort(422)
 
     @app.errorhandler(422)
